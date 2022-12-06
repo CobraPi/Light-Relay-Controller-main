@@ -90,7 +90,7 @@ CmdMessenger cmdMsg = CmdMessenger(Serial,',',';','/');
 
 long patternChangeTimeCounter;
 int16_t patternDelay;
-int16_t counter=0;
+int16_t counter=1;
 bool first = true;
 //WebServer server(80);
 //Adafruit_NeoPixel strip(LED_COUNT, PIN_NEOPIXEL, NEO_GRBW + NEO_KHZ400);
@@ -271,12 +271,19 @@ void set_change_time() {
 
 void set_pattern() {
     if(millis() - patternChangeTimeCounter > patternDelay) {
-        uint8_t index = random(6);
+        uint8_t index = random(4);
         light.timeThresholds[index] = random(300, 700);
         light.patterns[index] = TIMED_STROBE;
         light.timers[index] = 0;
         set_change_time();
         patternChangeTimeCounter = millis();
+        counter++;
+    }
+    if(counter % 18 == 0) {
+        patternDelay = random(150000, 3000000);
+        patternChangeTimeCounter = millis();
+        set_all_lights(INIT);
+        set_all_lights(ON);
     }
 }
 
