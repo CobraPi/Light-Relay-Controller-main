@@ -1,12 +1,14 @@
 #include <Arduino.h>
 #include <CmdMessenger.h>
+//#include <Wifi.h>
+//#include <web_server.h>
 //#include <Adafruit_NeoPixel.h>
 
 #define PIN_NEOPIXEL 18
 #define LED_COUNT 256
 uint8_t LED_BRIGHTNESS = 5;
 
-#define MAX_PWM 4095
+#define MAX_PWM 255
 #define LOGIC_HIGH   1 // logic to turn lights on (dependant on relay)
 enum {
     CMD_INIT_ALL,
@@ -86,6 +88,11 @@ Light light;
 
 CmdMessenger cmdMsg = CmdMessenger(Serial,',',';','/');
 
+long patternChangeTimeCounter;
+int16_t patternDelay;
+int16_t counter=0;
+bool first = true;
+//WebServer server(80);
 //Adafruit_NeoPixel strip(LED_COUNT, PIN_NEOPIXEL, NEO_GRBW + NEO_KHZ400);
 
 /*
@@ -222,27 +229,54 @@ void attach_callbacks() {
     cmdMsg.attach(CMD_GET_LIGHT_DATA, handle_get_light_data);
 }
 
+void set_change_time();
 void setup() {
    
     Serial.begin(115200); 
-    analogWriteResolution(12);
+    //analogWriteResolution(12);
     set_all_lights(INIT);
+    
     attach_callbacks();
+    //server.init(); 
     //strip.begin();
     //strip.setBrightness(LED_BRIGHTNESS);
     //strip.setPixelColor(3, strip.Color(10, 0, 0, 0));
     //strip.show();
+    patternChangeTimeCounter = millis(); 
+    set_change_time();
 }
 
+void set_pattern();
 
 void serial_debug();
 void loop() {
-    
+    //server.run_loop(); 
     //cycle_colors(100, 0, 0, 0); strip.clear();
     //serial_debug();
-    cmdMsg.feedinSerialData();
+    //cmdMsg.feedinSerialData();
+    if(first) {
+        set_all_lights(ON);
+        first = false;
+    } 
+    set_pattern();
     for(int i=0; i< LIGHT_LAST; i++) {
         set_light((Lights)i, light.patterns[i]);
+    }
+}
+
+
+void set_change_time() {
+    patternDelay = random(1000, 20000); // 1 - 20 second pattern display time
+}
+
+void set_pattern() {
+    if(millis() - patternChangeTimeCounter > patternDelay) {
+        uint8_t index = random(6);
+        light.timeThresholds[index] = random(300, 700);
+        light.patterns[index] = TIMED_STROBE;
+        light.timers[index] = 0;
+        set_change_time();
+        patternChangeTimeCounter = millis();
     }
 }
 
